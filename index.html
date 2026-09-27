@@ -1,84 +1,2076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Superposition of Waves Analysis & Fourier Transformation</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0a0d14',
+                        cardbg: '#111726',
+                        bordercolor: '#1f293d',
+                        neonGreen: '#4ade80',
+                        neonCyan: '#38bdf8',
+                        neonRed: '#f43f5e',
+                        neonYellow: '#fde047',
+                        neonPurple: '#c084fc'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Menlo', 'monospace']
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        /* Custom range slider styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #1e293b;
+            border-radius: 9999px;
+            outline: none;
+            height: 6px;
+            transition: background-color 0.2s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+            border: 2px solid #0f172a;
+            transition: transform 0.15s ease, background 0.2s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #60a5fa;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+            border: 2px solid #0f172a;
+        }
+        .canvas-glow {
+            filter: drop-shadow(0 0 8px rgba(74, 222, 128, 0.15));
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
+        }
+    </style>
+</head>
+<body class="bg-[#070a12] text-slate-200 min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-slate-900">
 
-Superposition of Waves & Fourier Analysis Interactive
-Time Domain, Winding Phasor / Lissajous, and Center-of-Mass Spectrum
-Play Reset
+    <header class="border-b border-bordercolor/80 bg-cardbg/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3 sm:px-6">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <svg class="w-5 h-5 text-slate-950 font-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12c3-8 5-8 8 0s5 8 8 0 5-8 8 0" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                        Superposition of Waves & Fourier Analysis
+                        <span class="text-[10px] uppercase font-semibold tracking-wider bg-cyan-950/80 text-cyan-400 px-2 py-0.5 rounded border border-cyan-800/50">Interactive</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Time Domain, Winding Phasor / Lissajous, and Center-of-Mass Spectrum</p>
+                </div>
+            </div>
 
-Superposition Analog (AM/FM/PM) Digital (C4FM/QAM)
+            <!-- Global Animation and Preset Controls -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <button id="btnPlayPause" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-600/30 transition">
+                    <svg id="playIcon" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><polygon points="5 3 19 10 5 17"/></svg>
+                    <span id="playText">Play</span>
+                </button>
+                <button id="btnReset" class="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+                    Reset
+                </button>
+                <div class="h-5 w-px bg-slate-700 mx-1 hidden sm:block"></div>
+                <!-- Mode Switcher -->
+                <div class="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+                    <button id="modeSuperposition" class="mode-tab px-3 py-1 text-xs font-semibold rounded-lg bg-cyan-600 text-white transition">Superposition</button>
+                    <button id="modeAnalog" class="mode-tab px-3 py-1 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">Analog (AM/FM/PM)</button>
+                    <button id="modeDigital" class="mode-tab px-3 py-1 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">Digital (C4FM/QAM)</button>
+                </div>
+                <div class="h-5 w-px bg-slate-700 mx-1 hidden sm:block"></div>
+                <div class="flex items-center gap-1">
+                    <span class="text-xs text-slate-400 mr-1 hidden md:inline">Presets:</span>
+                    <button class="preset-btn px-2.5 py-1 text-xs rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60" data-f1="2" data-f2="3" data-name="2Hz + 3Hz (Classic)">2 + 3 Hz</button>
+                    <button class="preset-btn px-2.5 py-1 text-xs rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60" data-f1="50" data-f2="55" data-name="Beats (50+55)">Beats (50+55)</button>
+                    <button class="preset-btn px-2.5 py-1 text-xs rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60" data-f1="100" data-f2="1000" data-name="Bass + 1kHz">100Hz + 1kHz</button>
+                    <button class="preset-btn px-2.5 py-1 text-xs rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/60" data-f1="60" data-f2="12000000000" data-name="60Hz + 12GHz (Ku-Band)">60Hz + 12GHz</button>
+                </div>
+            </div>
+        </div>
+    </header>
 
-Presets: 2 + 3 Hz Beats (50+55) 100Hz + 1kHz 60Hz + 12GHz
-Current Time (t): 0.72 s
-0.00 s
-Speed:
-                                0.25x
-                                0.5x
-                                1.0x
-                                2.0x
-                            
-4.00 s
-Wave 1 (f₁):
-Hz
-1 Hz 2.00 Hz 200 Hz
-Wave 2 (f₂):
-                                Hz
-                                kHz
-                                MHz
-                                GHz
-                            
-1 Hz 3.00 Hz 12 GHz
-Analog Modulation Type
-                        AM (Amplitude Modulation)
-                        FM (Frequency Modulation)
-                        PM (Phase Modulation)
-                     Carrier frequency modulated by message
-Carrier (fc): 12.00 Hz
-1 Hz 40 Hz
-Message (fm): 1.50 Hz
-0.2 Hz 5.0 Hz
-Mod Index (β): 3.00
-0.1 (Narrow) 6.0 (Wideband)
-Digital Modulation Standard
-                        C4FM (Continuous 4-Level FSK / Fusion / P25)
-                        2-FSK (Binary Frequency Shift Keying)
-                        BPSK (Binary Phase Shift Keying)
-                        QPSK (Quadrature Phase Shift Keying)
-                        16-QAM (Quadrature Amplitude Modulation)
-                     4-frequency FSK with Nyquist filtering
-Digital Carrier (fc): 10.00 Hz
-4 Hz 30 Hz
-Symbol Rate (Baud): 2.0 Baud
-0.5 Baud 4.0 Baud
-Bit Sequence: Regenerate
-10 01 00 11 10 00 01 11
-4.0 bps @ 2 bits/sym
+    <main class="max-w-7xl mx-auto w-full p-4 sm:p-6 flex-1 flex flex-col gap-6">
 
-Superposition Output & Mathematical Analysis
-Play Audio Output Copy Equation
-Modulation Equation
-y(t) = cos(2π·2t) + cos(2π·3t)
-Constructive & destructive interference
-Instantaneous Output s(t)
-+1.24 at t = 0.72s
-y₁: +0.81 y₂: +0.43
-Spectral Bandwidth
-1.00 Hz Δf = |f₁ - f₂|
-Envelope: 1.00 s Ratio: 2 : 3
-State / Constellation
-x̄ = +0.25 ȳ = 0.00
-Audio: In range (Audible sound)
-1. Time Domain Representation: 2 Hz + 3 Hz
-Combined Wave s(t) Current Time Marker
+        <!-- Top Controls Container: Dynamic based on Active Mode -->
+        <section class="bg-cardbg border border-bordercolor rounded-2xl p-5 shadow-xl">
+            
+            <!-- Superposition Controls -->
+            <div id="superpositionControls" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Time Scrubbing & Animation Speed -->
+                <div class="flex flex-col justify-between space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label for="timeSlider" class="text-xs font-semibold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            Current Time (t):
+                        </label>
+                        <span id="currentTimeDisplay" class="font-mono text-sm font-bold text-white bg-slate-900/80 px-2.5 py-0.5 rounded border border-slate-800">
+                            0.72 s
+                        </span>
+                    </div>
+                    <input type="range" id="timeSlider" min="0" max="4.0" step="0.002" value="0.72" class="w-full">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400">
+                        <span>0.00 s</span>
+                        <div class="flex items-center gap-2">
+                            <span>Speed:</span>
+                            <select id="speedSelect" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded px-1.5 py-0.5 focus:ring-1 focus:ring-cyan-500">
+                                <option value="0.25">0.25x</option>
+                                <option value="0.5">0.5x</option>
+                                <option value="1" selected>1.0x</option>
+                                <option value="2">2.0x</option>
+                            </select>
+                        </div>
+                        <span>4.00 s</span>
+                    </div>
+                </div>
 
-Superposition of the two frequencies over time. Dashed vertical lines mark fundamental integer periods. The white pointer highlights the current time instantaneous amplitude feeding into the phasor/I-Q engine below.
-2. Phasor & I/Q Constellation
-Mode:
-                            3B1B Polar Winding
-                            Lissajous Phasor (X vs Y)
-                        
-Winding Rate: 2.00 cycles/s Sweep
+                <!-- Frequency 1 Input & Slider (1 Hz to 200 Hz) -->
+                <div class="flex flex-col justify-between space-y-3 border-t md:border-t-0 md:border-l border-bordercolor pt-4 md:pt-0 md:pl-6">
+                    <div class="flex items-center justify-between gap-2">
+                        <label for="f1Input" class="text-xs font-semibold uppercase tracking-wider text-fuchsia-400 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-fuchsia-500 inline-block shadow-sm shadow-fuchsia-400"></span>
+                            Wave 1 (f₁):
+                        </label>
+                        <div class="flex items-center gap-1.5">
+                            <input type="number" id="f1Input" min="1" max="200" step="0.1" value="2" 
+                                   class="w-24 bg-slate-900 text-right font-mono text-sm font-bold text-fuchsia-300 px-2 py-0.5 rounded border border-slate-700 focus:border-fuchsia-500 focus:outline-none focus:ring-1 focus:ring-fuchsia-500">
+                            <span class="text-slate-400 font-mono text-xs px-1">Hz</span>
+                        </div>
+                    </div>
+                    <input type="range" id="f1Slider" min="1" max="200" step="0.5" value="2" class="w-full">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400">
+                        <span>1 Hz</span>
+                        <span id="f1Display" class="text-fuchsia-400 font-mono font-medium">2.00 Hz</span>
+                        <span>200 Hz</span>
+                    </div>
+                <!-- Frequency 2 Input & Slider (1 Hz to 12,000,000,000 Hz / 12 GHz) -->
+                <div class="flex flex-col justify-between space-y-3 border-t md:border-t-0 md:border-l border-bordercolor pt-4 md:pt-0 md:pl-6">
+                    <div class="flex items-center justify-between gap-2">
+                        <label for="f2Input" class="text-xs font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block shadow-sm shadow-amber-400"></span>
+                            Wave 2 (f₂):
+                        </label>
+                        <div class="flex items-center gap-1">
+                            <input type="number" id="f2Input" min="1" max="12000000000" step="any" value="3" 
+                                   class="w-24 bg-slate-900 text-right font-mono text-sm font-bold text-amber-300 px-2 py-0.5 rounded border border-slate-700 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500">
+                            <select id="f2Unit" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded px-1 py-1 focus:outline-none">
+                                <option value="1" selected>Hz</option>
+                                <option value="1000">kHz</option>
+                                <option value="1000000">MHz</option>
+                                <option value="1000000000">GHz</option>
+                            </select>
+                        </div>
+                    </div>
+                    <input type="range" id="f2Slider" min="0" max="10.07918" step="0.001" value="0.47712" class="w-full">
+                    <div class="flex items-center justify-between text-[11px] text-slate-400">
+                        <span>1 Hz</span>
+                        <span id="f2Display" class="text-amber-400 font-mono font-medium">3.00 Hz</span>
+                        <span>12 GHz</span>
+                    </div>
+                </div>
+            </div>
 
-Center of Mass (x̄, ȳ) Phasor / I-Q Vector x̄: +0.25
-3. Frequency Domain (Fourier & Carson Spectrum)
-x-coordinate of center of mass
+            <!-- Analog Modulation Controls (AM, FM, PM) -->
+            <div id="analogControls" class="hidden grid grid-cols-1 md:grid-cols-4 gap-6">
+                <!-- Analog Type & Parameters -->
+                <div class="flex flex-col justify-between space-y-2">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-cyan-400">Analog Modulation Type</label>
+                    <select id="analogTypeSelect" class="bg-slate-900 border border-slate-700 text-cyan-300 font-bold text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-cyan-500">
+                        <option value="AM">AM (Amplitude Modulation)</option>
+                        <option value="FM" selected>FM (Frequency Modulation)</option>
+                        <option value="PM">PM (Phase Modulation)</option>
+                    </select>
+                    <span id="analogModDesc" class="text-[11px] text-slate-400">Carrier frequency modulated by message</span>
+                </div>
 
-Spectrum Magnitude |S(f)| Carrier & Sideband Peaks
-Click on graph to snap winding frequency
+                <!-- Carrier Frequency (fc) -->
+                <div class="flex flex-col justify-between space-y-2 border-t md:border-t-0 md:border-l border-bordercolor pt-4 md:pt-0 md:pl-6">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-semibold text-fuchsia-400">Carrier (fc):</label>
+                        <span id="analogFcDisplay" class="font-mono text-xs font-bold text-fuchsia-300">12.00 Hz</span>
+                    </div>
+                    <input type="range" id="analogFcSlider" min="1" max="40" step="0.5" value="12" class="w-full">
+                    <div class="flex justify-between text-[10px] text-slate-500">
+                        <span>1 Hz</span>
+                        <span>40 Hz</span>
+                    </div>
+                </div>
+
+                <!-- Message Frequency (fm) -->
+                <div class="flex flex-col justify-between space-y-2 border-t md:border-t-0 md:border-l border-bordercolor pt-4 md:pt-0 md:pl-6">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-semibold text-amber-400">Message (fm):</label>
+                        <span id="analogFmDisplay" class="font-mono text-xs font-bold text-amber-300">1.50 Hz</span>
+                    </div>
+                    <input type="range" id="analogFmSlider" min="0.2" max="5.0" step="0.1" value="1.5" class="w-full">
+                    <div class="flex justify-between text-[10px] text-slate-500">
+                        <span>0.2 Hz</span>
+                        <span>5.0 Hz</span>
+                    </div>
+                </div>
+
+                <!-- Modulation Index (beta / mu / kp) -->
+                <div class="flex flex-col justify-between space-y-2 border-t md:border-t-0 md:border-l border-bordercolor pt-4 md:pt-0 md:pl-6">
+                    <div class="flex items-center justify-between">
+                        <label id="analogIndexLabel" class="text-xs font-semibold text-emerald-400">Mod Index (β):</label>
+                        <span id="analogIndexDisplay" class="font-mono text-xs font-bold text-emerald-300">3.00</span>
+                    </div>
+                    <input type="range" id="analogIndexSlider" min="0.1" max="6.0" step="0.1" value="3.0" class="w-full">
+                    <div class="flex justify-between text-[10px] text-slate-500">
+                        <span>0.1 (Narrow)</span>
+                        <span>6.0 (Wideband)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Digital Modulation Controls (C4FM, BPSK, QPSK, 16-QAM, 2-FSK) -->
+            <div id="digitalControls" class="hidden grid grid-cols-1 md:grid-cols-4 gap-6">
+                <!-- Digital Scheme Selection -->
+                <div class="flex flex-col justify-between space-y-2">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-cyan-400">Digital Modulation Standard</label>
+                    <select id="digitalTypeSelect" class="bg-slate-900 border border-slate-700 text-cyan-300 font-bold text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-cyan-500">
+                        <option value="C4FM" selected>C4FM (Continuous 4-Level FSK / Fusion / P25)</option>
+                        <option value="2FSK">2-FSK (Binary Frequency Shift Keying)</option>
+                        <option value="BPSK">BPSK (Binary Phase Shift Keying)</option>
+                        <option value="QPSK">QPSK (Quadrature Phase Shift Keying)</option>
+                        <option value="16QAM">16-QAM (Quadrature Amplitude Modulation)</option>
+                    </select>
+                    <span id="digitalModDesc" class="text-[11px] text-slate-400">4-frequency FSK with Nyquist filtering</span>
+                </div>
+
+                <!-- Carrier Frequency (fc) -->
+                <div class="flex flex-col justify-between space-y-2 border-t md:border-t-0 md:border-l border-bordercolor pt-4 md:pt-0 md:pl-6">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-semibold text-fuchsia-400">Digital Carrier (fc):</label>
+                        <span id="digitalFcDisplay" class="font-mono text-xs font-bold text-fuchsia-300">10.00 Hz</span>
+                    </div>
+                    <input type="range" id="digitalFcSlider" min="4" max="30" step="1" value="10" class="w-full">
+                    <div class="flex justify-between text-[10px] text-slate-500">
+                        <span>4 Hz</span>
+                        <span>30 Hz</span>
+                    </div>
+                </div>
+
+                <!-- Symbol Rate / Baud -->
+                <div class="flex flex-col justify-between space-y-2 border-t md:border-t-0 md:border-l border-bordercolor pt-4 md:pt-0 md:pl-6">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-semibold text-amber-400">Symbol Rate (Baud):</label>
+                        <span id="digitalBaudDisplay" class="font-mono text-xs font-bold text-amber-300">2.0 Baud</span>
+                    </div>
+                    <input type="range" id="digitalBaudSlider" min="0.5" max="4.0" step="0.5" value="2.0" class="w-full">
+                    <div class="flex justify-between text-[10px] text-slate-500">
+                        <span>0.5 Baud</span>
+                        <span>4.0 Baud</span>
+                    </div>
+                </div>
+
+                <!-- Active Digital Bitstream Actions -->
+                <div class="flex flex-col justify-between space-y-2 border-t md:border-t-0 md:border-l border-bordercolor pt-4 md:pt-0 md:pl-6">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-semibold text-emerald-400">Bit Sequence:</label>
+                        <button id="btnRandomBits" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-cyan-300 px-2 py-0.5 rounded border border-slate-700">Regenerate</button>
+                    </div>
+                    <div id="digitalBitStreamDisplay" class="font-mono text-xs font-black text-emerald-400 bg-slate-950 p-2 rounded-lg border border-slate-800 tracking-widest break-all">
+                        10 01 00 11 10 00 01 11
+                    </div>
+                    <span id="digitalBitsRate" class="text-[10px] text-slate-400">4.0 bps @ 2 bits/sym</span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Superposition & Modulation Output & Metrics Dashboard -->
+        <section class="bg-cardbg border border-bordercolor rounded-2xl p-5 shadow-xl space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-bordercolor pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></div>
+                    <h2 id="dashboardTitle" class="text-sm sm:text-base font-bold text-white tracking-wide">
+                        Superposition Output & Mathematical Analysis
+                    </h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btnAudioOutput" class="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" title="Listen to the synthesized output">
+                        <svg id="audioIcon" class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+                        <span id="audioText">Play Audio Output</span>
+                    </button>
+                    <button id="btnCopyEquation" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+                        Copy Equation
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Mathematical Formula Output Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Card 1: Active Modulation / Superposition Equation -->
+                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                    <span id="labelCard1" class="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">Modulation Equation</span>
+                    <div id="outputEquation" class="font-mono text-xs text-emerald-400 font-semibold my-2 break-all">
+                        y(t) = cos(2π·2t) + cos(2π·3t)
+                    </div>
+                    <span id="subtextCard1" class="text-[10px] text-slate-500">Constructive & destructive interference</span>
+                </div>
+
+                <!-- Card 2: Instantaneous Amplitude / Phase / In-Phase & Quadrature -->
+                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                    <span id="labelCard2" class="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">Instantaneous Output s(t)</span>
+                    <div class="flex items-baseline gap-2 my-1.5">
+                        <span id="outputInstantTotal" class="font-mono text-xl font-black text-white">+1.24</span>
+                        <span class="text-xs text-slate-500">at t = <span id="outputTVal" class="text-cyan-400">0.72s</span></span>
+                    </div>
+                    <div id="subComponentsCard2" class="text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                        <span>y₁: <span id="outputY1" class="text-fuchsia-400 font-bold">+0.81</span></span>
+                        <span>y₂: <span id="outputY2" class="text-amber-400 font-bold">+0.43</span></span>
+                    </div>
+                </div>
+
+                <!-- Card 3: Bandwidth / Deviation / Carson's Rule -->
+                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                    <span id="labelCard3" class="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">Spectral Bandwidth</span>
+                    <div class="flex items-baseline gap-2 my-1.5">
+                        <span id="outputBeatFreq" class="font-mono text-xl font-black text-cyan-300">1.00 Hz</span>
+                        <span id="outputFormulaSub" class="text-xs text-slate-400">Δf = |f₁ - f₂|</span>
+                    </div>
+                    <div class="text-[11px] text-slate-400 flex items-center justify-between">
+                        <span id="metricLeftLabel">Envelope: <span id="outputBeatPeriod" class="font-mono text-slate-300">1.00 s</span></span>
+                        <span id="metricRightLabel">Ratio: <span id="outputRatio" class="font-mono text-slate-300 font-bold">2 : 3</span></span>
+                    </div>
+                </div>
+
+                <!-- Card 4: Symbol / Constellation State / Audio Status -->
+                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                    <span id="labelCard4" class="text-[11px] font-semibold uppercase text-slate-400 tracking-wider">State / Constellation</span>
+                    <div class="flex items-baseline gap-2 my-1.5">
+                        <span id="outputCoM" class="font-mono text-lg font-black text-rose-400">x̄ = +0.25</span>
+                        <span id="outputCoMSub" class="text-xs text-slate-400">ȳ = 0.00</span>
+                    </div>
+                    <span id="audioStatusText" class="text-[11px] text-slate-400 truncate">
+                        Audio: In range (Audible sound)
+                    </span>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- Time Domain Canvas -->
+        <section class="bg-cardbg border border-bordercolor rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-sm bg-emerald-400"></span>
+                    <h2 class="text-sm sm:text-base font-bold text-white tracking-wide">
+                        1. Time Domain Representation: <span id="timeWaveTitle" class="text-fuchsia-400 font-mono">2 Hz</span> <span class="text-slate-400">+</span> <span id="timeWaveTitle2" class="text-amber-400 font-mono">3 Hz</span>
+                    </h2>
+                </div>
+                <div class="flex items-center gap-3 text-xs text-slate-400">
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+                        <span id="timeLegendText">Combined Wave s(t)</span>
+                    </span>
+                    <span class="flex items-center gap-1.5 text-cyan-300">
+                        <span class="w-2 h-2 rounded-full bg-white inline-block"></span>
+                        Current Time Marker
+                    </span>
+                </div>
+            </div>
+
+            <!-- Responsive Canvas container -->
+            <div class="w-full h-56 sm:h-64 relative bg-[#040711] rounded-xl border border-slate-800/80 overflow-hidden">
+                <canvas id="timeCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+            </div>
+            <p id="timeDescriptionText" class="text-xs text-slate-400 mt-2.5 leading-relaxed">
+                Superposition of the two frequencies over time. Dashed vertical lines mark fundamental integer periods. The white pointer highlights the current time instantaneous amplitude feeding into the phasor/I-Q engine below.
+            </p>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+            <!-- Bottom Left: Phasor / Winding / Constellation Canvas (5 cols) -->
+            <div class="lg:col-span-5 bg-cardbg border border-bordercolor rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-sm bg-emerald-400"></span>
+                        <h2 id="phasorHeading" class="text-sm sm:text-base font-bold text-white">2. Phasor & I/Q Constellation</h2>
+                    </div>
+                    <div id="windingModeContainer" class="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded border border-slate-800 text-xs">
+                        <span class="text-slate-400">Mode:</span>
+                        <select id="windingModeSelect" class="bg-transparent text-cyan-400 font-semibold focus:outline-none">
+                            <option value="winding">3B1B Polar Winding</option>
+                            <option value="lissajous">Lissajous Phasor (X vs Y)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Winding Frequency Sub-Control (shown in superposition mode) -->
+                <div id="windingSubControl" class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 mb-3 flex items-center justify-between gap-3 text-xs">
+                    <span class="text-slate-300 font-medium whitespace-nowrap">Winding Rate:</span>
+                    <input type="range" id="windingFreqSlider" min="0.0" max="6.0" step="0.01" value="2.00" class="flex-1">
+                    <span id="windingFreqDisplay" class="font-mono text-cyan-300 font-bold bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                        2.00 cycles/s
+                    </span>
+                    <button id="btnAutoSweep" title="Automatically scan through frequencies" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-[11px]">
+                        Sweep
+                    </button>
+                </div>
+
+                <!-- Canvas -->
+                <div class="w-full h-72 sm:h-80 relative bg-[#040711] rounded-xl border border-slate-800/80 overflow-hidden flex items-center justify-center">
+                    <canvas id="phasorCanvas" class="w-full h-full block"></canvas>
+                </div>
+
+                <div class="mt-3 flex items-center justify-between text-xs text-slate-400">
+                    <span class="flex items-center gap-1.5">
+                        <span id="phasorLegendDot" class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500 inline-block"></span>
+                        <span id="phasorLegendText">Center of Mass (x̄, ȳ)</span>
+                    </span>
+                    <span class="flex items-center gap-1.5 text-slate-300">
+                        <span class="w-2 h-0.5 bg-white inline-block"></span>
+                        <span id="phasorVectorLabel">Phasor / I-Q Vector</span>
+                    </span>
+                    <span id="phasorCoMText" class="font-mono text-amber-300 font-semibold">
+                        x̄: +0.25
+                    </span>
+                </div>
+            </div>
+
+            <!-- Bottom Right: Frequency Domain Representation (7 cols) -->
+            <div class="lg:col-span-7 bg-cardbg border border-bordercolor rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-sm bg-rose-500"></span>
+                        <h2 id="fdrHeading" class="text-sm sm:text-base font-bold text-white">3. Frequency Domain (Fourier & Carson Spectrum)</h2>
+                    </div>
+                    <span id="fdrSubtitle" class="text-xs font-mono text-slate-400 bg-slate-900 px-2.5 py-0.5 rounded border border-slate-800">
+                        x-coordinate of center of mass
+                    </span>
+                </div>
+
+                <!-- Canvas -->
+                <div class="w-full h-72 sm:h-80 relative bg-[#040711] rounded-xl border border-slate-800/80 overflow-hidden">
+                    <canvas id="fdrCanvas" class="w-full h-full block cursor-pointer"></canvas>
+                </div>
+
+                <!-- Legend & explanation -->
+                <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
+                            <span id="fdrSpectrumLegend">Spectrum Magnitude |S(f)|</span>
+                        </span>
+                        <span class="flex items-center gap-1.5 text-yellow-400">
+                            <span class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse inline-block shadow-sm shadow-yellow-400"></span>
+                            Carrier & Sideband Peaks
+                        </span>
+                    </div>
+                    <span id="fdrHintText" class="text-[11px] text-slate-500">
+                        Click on graph to snap winding frequency
+                    </span>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script>
+        // State variables expanded for Analog & Digital Modulations
+        const state = {
+            activeMode: 'superposition', // 'superposition', 'analog', 'digital'
+            time: 0.72,
+            maxTime: 4.0,
+            isPlaying: false,
+            speed: 1.0,
+            f1: 2.0, // in Hz
+            f2: 3.0, // in Hz
+            windingFreq: 2.0, // in cycles/sec
+            isSweeping: false,
+            sweepSpeed: 0.25,
+            sweepDirection: 1,
+            windingMode: 'winding', // 'winding' or 'lissajous'
+            lastFrameTime: performance.now(),
+
+            // Analog Modulation parameters
+            analogType: 'FM', // 'AM', 'FM', 'PM'
+            analogFc: 12.0,
+            analogFm: 1.5,
+            analogIndex: 3.0, // beta for FM, mu for AM, kp for PM
+
+            // Digital Modulation parameters
+            digitalType: 'C4FM', // 'C4FM', '2FSK', 'BPSK', 'QPSK', '16QAM'
+            digitalFc: 10.0,
+            digitalBaud: 2.0,
+            digitalBits: [1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1]
+        };
+
+        // DOM Element references
+        const timeCanvas = document.getElementById('timeCanvas');
+        const phasorCanvas = document.getElementById('phasorCanvas');
+        const fdrCanvas = document.getElementById('fdrCanvas');
+
+        const timeSlider = document.getElementById('timeSlider');
+        const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+        const speedSelect = document.getElementById('speedSelect');
+        const btnPlayPause = document.getElementById('btnPlayPause');
+        const playText = document.getElementById('playText');
+        const playIcon = document.getElementById('playIcon');
+        const btnReset = document.getElementById('btnReset');
+
+        // Mode Switching Tabs
+        const modeSuperpositionBtn = document.getElementById('modeSuperposition');
+        const modeAnalogBtn = document.getElementById('modeAnalog');
+        const modeDigitalBtn = document.getElementById('modeDigital');
+
+        const superpositionControls = document.getElementById('superpositionControls');
+        const analogControls = document.getElementById('analogControls');
+        const digitalControls = document.getElementById('digitalControls');
+
+        // Analog Elements
+        const analogTypeSelect = document.getElementById('analogTypeSelect');
+        const analogModDesc = document.getElementById('analogModDesc');
+        const analogFcSlider = document.getElementById('analogFcSlider');
+        const analogFcDisplay = document.getElementById('analogFcDisplay');
+        const analogFmSlider = document.getElementById('analogFmSlider');
+        const analogFmDisplay = document.getElementById('analogFmDisplay');
+        const analogIndexLabel = document.getElementById('analogIndexLabel');
+        const analogIndexSlider = document.getElementById('analogIndexSlider');
+        const analogIndexDisplay = document.getElementById('analogIndexDisplay');
+
+        // Digital Elements
+        const digitalTypeSelect = document.getElementById('digitalTypeSelect');
+        const digitalModDesc = document.getElementById('digitalModDesc');
+        const digitalFcSlider = document.getElementById('digitalFcSlider');
+        const digitalFcDisplay = document.getElementById('digitalFcDisplay');
+        const digitalBaudSlider = document.getElementById('digitalBaudSlider');
+        const digitalBaudDisplay = document.getElementById('digitalBaudDisplay');
+        const digitalBitStreamDisplay = document.getElementById('digitalBitStreamDisplay');
+        const digitalBitsRate = document.getElementById('digitalBitsRate');
+        const btnRandomBits = document.getElementById('btnRandomBits');
+
+        // Dashboard text & labels
+        const dashboardTitle = document.getElementById('dashboardTitle');
+        const labelCard1 = document.getElementById('labelCard1');
+        const outputEquation = document.getElementById('outputEquation');
+        const subtextCard1 = document.getElementById('subtextCard1');
+        const labelCard2 = document.getElementById('labelCard2');
+        const outputInstantTotal = document.getElementById('outputInstantTotal');
+        const outputTVal = document.getElementById('outputTVal');
+        const subComponentsCard2 = document.getElementById('subComponentsCard2');
+        const outputY1 = document.getElementById('outputY1');
+        const outputY2 = document.getElementById('outputY2');
+        const labelCard3 = document.getElementById('labelCard3');
+        const outputBeatFreq = document.getElementById('outputBeatFreq');
+        const outputFormulaSub = document.getElementById('outputFormulaSub');
+        const metricLeftLabel = document.getElementById('metricLeftLabel');
+        const metricRightLabel = document.getElementById('metricRightLabel');
+        const labelCard4 = document.getElementById('labelCard4');
+        const outputCoM = document.getElementById('outputCoM');
+        const outputCoMSub = document.getElementById('outputCoMSub');
+        const audioStatusText = document.getElementById('audioStatusText');
+        const btnAudioOutput = document.getElementById('btnAudioOutput');
+        const audioText = document.getElementById('audioText');
+        const btnCopyEquation = document.getElementById('btnCopyEquation');
+
+        // Superposition specific controls
+        const f1Slider = document.getElementById('f1Slider');
+        const f2Slider = document.getElementById('f2Slider');
+        const f1Display = document.getElementById('f1Display');
+        const f2Display = document.getElementById('f2Display');
+        const f1Input = document.getElementById('f1Input');
+        const f2Input = document.getElementById('f2Input');
+        const f2Unit = document.getElementById('f2Unit');
+        const timeWaveTitle = document.getElementById('timeWaveTitle');
+        const timeWaveTitle2 = document.getElementById('timeWaveTitle2');
+
+        const windingFreqSlider = document.getElementById('windingFreqSlider');
+        const windingFreqDisplay = document.getElementById('windingFreqDisplay');
+        const btnAutoSweep = document.getElementById('btnAutoSweep');
+        const windingModeSelect = document.getElementById('windingModeSelect');
+        const windingModeContainer = document.getElementById('windingModeContainer');
+        const windingSubControl = document.getElementById('windingSubControl');
+        const phasorHeading = document.getElementById('phasorHeading');
+        const phasorLegendText = document.getElementById('phasorLegendText');
+        const phasorLegendDot = document.getElementById('phasorLegendDot');
+        const phasorVectorLabel = document.getElementById('phasorVectorLabel');
+        const phasorCoMText = document.getElementById('phasorCoMText');
+        const fdrHeading = document.getElementById('fdrHeading');
+        const fdrSubtitle = document.getElementById('fdrSubtitle');
+        const fdrHintText = document.getElementById('fdrHintText');
+        const timeLegendText = document.getElementById('timeLegendText');
+        const timeDescriptionText = document.getElementById('timeDescriptionText');
+
+        // Web Audio synthesizer state
+        let audioCtx = null;
+        let osc1 = null;
+        let osc2 = null;
+        let gainNode = null;
+        let isAudioPlaying = false;
+
+        // Helper formatting functions
+        function formatHz(freq) {
+            if (freq >= 1e9) {
+                return (freq / 1e9).toFixed(freq % 1e9 === 0 ? 0 : 2) + ' GHz';
+            } else if (freq >= 1e6) {
+                return (freq / 1e6).toFixed(freq % 1e6 === 0 ? 0 : 2) + ' MHz';
+            } else if (freq >= 1e3) {
+                return (freq / 1e3).toFixed(freq % 1e3 === 0 ? 0 : 2) + ' kHz';
+            } else {
+                return freq.toFixed(freq % 1 === 0 ? 0 : 2) + ' Hz';
+            }
+        }
+
+        function logValToFreq(val) {
+            return Math.pow(10, parseFloat(val));
+        }
+
+        function freqToLogVal(freq) {
+            return Math.log10(Math.max(1, freq));
+        }
+
+        function gcd(a, b) {
+            a = Math.round(a);
+            b = Math.round(b);
+            while (b) {
+                const t = b;
+                b = a % b;
+                a = t;
+            }
+            return a;
+        }
+
+        function getFrequencyRatioString(freq1, freq2) {
+            if (freq1 <= 0 || freq2 <= 0) return '1 : 1';
+            const scale = (freq1 % 1 !== 0 || freq2 % 1 !== 0) ? 10 : 1;
+            const a = Math.round(freq1 * scale);
+            const b = Math.round(freq2 * scale);
+            const d = gcd(a, b);
+            const rA = a / d;
+            const rB = b / d;
+            if (rA > 999 || rB > 999) {
+                return (freq1 / freq2).toFixed(2) + ' : 1';
+            }
+            return `${rA} : ${rB}`;
+        }
+
+        // Digital modulation symbol mapping
+        function getBitsPerSymbol(type) {
+            switch(type) {
+                case 'BPSK':
+                case '2FSK': return 1;
+                case 'C4FM':
+                case 'QPSK': return 2;
+                case '16QAM': return 4;
+                default: return 1;
+            }
+        }
+
+        function updateDigitalBitStreamDisplay() {
+            const bps = getBitsPerSymbol(state.digitalType);
+            const chunks = [];
+            for (let i = 0; i < state.digitalBits.length; i += bps) {
+                chunks.push(state.digitalBits.slice(i, i + bps).join(''));
+            }
+            digitalBitStreamDisplay.textContent = chunks.join(' ');
+            const bitRate = (state.digitalBaud * bps).toFixed(1);
+            digitalBitsRate.textContent = `${bitRate} bps @ ${bps} bits/sym (${chunks.length} symbols)`;
+        }
+
+        function generateRandomBits() {
+            const bps = getBitsPerSymbol(state.digitalType);
+            const totalSymbols = 8;
+            const newBits = [];
+            for (let i = 0; i < totalSymbols * bps; i++) {
+                newBits.push(Math.random() > 0.5 ? 1 : 0);
+            }
+            state.digitalBits = newBits;
+            updateDigitalBitStreamDisplay();
+            render();
+        }
+
+        // Calculate digital symbol index and properties at time t
+        function getDigitalStateAtTime(t) {
+            const bps = getBitsPerSymbol(state.digitalType);
+            const symbolDuration = 1 / state.digitalBaud;
+            const totalSymbols = Math.floor(state.digitalBits.length / bps);
+            const symIdx = Math.floor(t / symbolDuration) % totalSymbols;
+            const symBits = state.digitalBits.slice(symIdx * bps, symIdx * bps + bps);
+            const intVal = symBits.reduce((acc, b) => (acc << 1) | b, 0);
+
+            // Return symbol I/Q coordinate or frequency offset
+            let I = 0, Q = 0, freqDev = 0, label = symBits.join('');
+
+            if (state.digitalType === 'BPSK') {
+                I = intVal === 1 ? 1 : -1;
+                Q = 0;
+            } else if (state.digitalType === 'QPSK') {
+                // Gray-coded QPSK mapping: 00 -> (-1,-1), 01 -> (-1,+1), 11 -> (+1,+1), 10 -> (+1,-1)
+                const mapQ = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+                I = mapQ[intVal][0] * 0.707;
+                Q = mapQ[intVal][1] * 0.707;
+            } else if (state.digitalType === '16QAM') {
+                // 4 bits: upper 2 bits for I, lower 2 bits for Q
+                const bI = (intVal >> 2) & 3;
+                const bQ = intVal & 3;
+                const levels = [-3, -1, 1, 3];
+                I = levels[bI] / 3.16; // Normalized sqrt(10)
+                Q = levels[bQ] / 3.16;
+            } else if (state.digitalType === '2FSK') {
+                freqDev = intVal === 1 ? 1.5 : -1.5;
+                I = Math.cos(2 * Math.PI * (state.digitalFc + freqDev) * t);
+                Q = Math.sin(2 * Math.PI * (state.digitalFc + freqDev) * t);
+            } else if (state.digitalType === 'C4FM') {
+                // Continuous 4-level FSK (Yaesu System Fusion / APCO-25):
+                // Symbols map to 4 deviations: +3, +1, -1, -3 kHz (scaled in Hz here)
+                const c4Devs = [-3.0, -1.0, 1.0, 3.0];
+                freqDev = c4Devs[intVal] * 0.8;
+                I = Math.cos(2 * Math.PI * (state.digitalFc + freqDev) * t);
+                Q = Math.sin(2 * Math.PI * (state.digitalFc + freqDev) * t);
+            }
+
+            return { symIdx, symBits, intVal, I, Q, freqDev, label };
+        }
+
+        // Evaluate Signal value s(t) according to active mode
+        function evalSignalAtTime(t) {
+            if (state.activeMode === 'superposition') {
+                const visualF1 = state.f1 > 50 ? (2 + Math.log10(state.f1) * 3) : state.f1;
+                const visualF2 = state.f2 > 50 ? (3 + Math.log10(state.f2) * 3.5) : state.f2;
+                const y1 = Math.cos(2 * Math.PI * visualF1 * t);
+                const y2 = Math.cos(2 * Math.PI * visualF2 * t);
+                return { s: 1.0 + 0.5 * y1 + 0.5 * y2, raw: y1 + y2, y1, y2, envelope: 2.0 };
+            } else if (state.activeMode === 'analog') {
+                const fc = state.analogFc;
+                const fm = state.analogFm;
+                const idx = state.analogIndex;
+
+                if (state.analogType === 'AM') {
+                    // AM: s(t) = [1 + mu * cos(2pi fm t)] * cos(2pi fc t)
+                    const m = Math.cos(2 * Math.PI * fm * t);
+                    const envelope = 1.0 + (idx / 3.0) * m;
+                    const carrier = Math.cos(2 * Math.PI * fc * t);
+                    return { s: envelope * carrier, raw: envelope * carrier, y1: m, y2: carrier, envelope };
+                } else if (state.analogType === 'FM') {
+                    // FM: s(t) = cos(2pi fc t + beta * sin(2pi fm t))
+                    const phi = idx * Math.sin(2 * Math.PI * fm * t);
+                    const val = Math.cos(2 * Math.PI * fc * t + phi);
+                    return { s: val, raw: val, y1: Math.cos(2 * Math.PI * fm * t), y2: val, envelope: 1.0 };
+                } else {
+                    // PM: s(t) = cos(2pi fc t + kp * cos(2pi fm t))
+                    const phi = idx * Math.cos(2 * Math.PI * fm * t);
+                    const val = Math.cos(2 * Math.PI * fc * t + phi);
+                    return { s: val, raw: val, y1: Math.cos(2 * Math.PI * fm * t), y2: val, envelope: 1.0 };
+                }
+            } else {
+                // Digital modulation
+                const dState = getDigitalStateAtTime(t);
+                const fc = state.digitalFc;
+
+                if (state.digitalType === 'C4FM' || state.digitalType === '2FSK') {
+                    const instFreq = fc + dState.freqDev;
+                    const val = Math.cos(2 * Math.PI * instFreq * t);
+                    return { s: val, raw: val, y1: dState.freqDev, y2: val, envelope: 1.0, dState };
+                } else {
+                    // PSK / QAM: s(t) = I(t)cos(2pi fc t) - Q(t)sin(2pi fc t)
+                    const val = dState.I * Math.cos(2 * Math.PI * fc * t) - dState.Q * Math.sin(2 * Math.PI * fc * t);
+                    const env = Math.sqrt(dState.I * dState.I + dState.Q * dState.Q);
+                    return { s: val, raw: val, y1: dState.I, y2: dState.Q, envelope: env, dState };
+                }
+            }
+        }
+
+        // Update real-time mathematical output dashboard
+        function updateOutputDashboard() {
+            const t = state.time;
+            const sig = evalSignalAtTime(t);
+
+            if (state.activeMode === 'superposition') {
+                dashboardTitle.textContent = 'Superposition Output & Mathematical Analysis';
+                labelCard1.textContent = 'Superposition Equation';
+                outputEquation.textContent = `y(t) = cos(2π·${formatHz(state.f1)}·t) + cos(2π·${formatHz(state.f2)}·t)`;
+                subtextCard1.textContent = 'Constructive & destructive interference';
+
+                labelCard2.textContent = 'Instantaneous Output y(t)';
+                outputInstantTotal.textContent = (sig.raw >= 0 ? '+' : '') + sig.raw.toFixed(2);
+                outputInstantTotal.className = `font-mono text-xl font-black ${sig.raw >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                outputTVal.textContent = t.toFixed(2) + 's';
+                subComponentsCard2.innerHTML = `<span>y₁: <span class="text-fuchsia-400 font-bold">${(sig.y1 >= 0 ? '+' : '') + sig.y1.toFixed(2)}</span></span><span>y₂: <span class="text-amber-400 font-bold">${(sig.y2 >= 0 ? '+' : '') + sig.y2.toFixed(2)}</span></span>`;
+
+                labelCard3.textContent = 'Beat Modulation Output';
+                const beat = Math.abs(state.f1 - state.f2);
+                outputBeatFreq.textContent = formatHz(beat);
+                outputFormulaSub.textContent = 'Δf = |f₁ - f₂|';
+                metricLeftLabel.innerHTML = `Envelope: <span class="font-mono text-slate-300">${beat > 0 ? (1 / beat >= 1 ? (1 / beat).toFixed(2) + ' s' : (1000 / beat).toFixed(1) + ' ms') : '∞'}</span>`;
+                metricRightLabel.innerHTML = `Ratio: <span class="font-mono text-slate-300 font-bold">${getFrequencyRatioString(state.f1, state.f2)}</span>`;
+
+                labelCard4.textContent = 'Fourier Center of Mass';
+                phasorHeading.textContent = '2. Phasor & Winding Machine';
+                windingModeContainer.classList.remove('hidden');
+                windingSubControl.classList.remove('hidden');
+
+            } else if (state.activeMode === 'analog') {
+                dashboardTitle.textContent = `Analog ${state.analogType} Modulation Output & Spectrum`;
+                labelCard1.textContent = `${state.analogType} Transmit Equation`;
+                
+                if (state.analogType === 'AM') {
+                    outputEquation.textContent = `s(t) = [1 + ${(state.analogIndex/3).toFixed(2)}·cos(2π·${state.analogFm}t)]·cos(2π·${state.analogFc}t)`;
+                    subtextCard1.textContent = `Carrier + Upper & Lower Sidebands`;
+                    labelCard3.textContent = 'AM Bandwidth (2·fm)';
+                    outputBeatFreq.textContent = (2 * state.analogFm).toFixed(2) + ' Hz';
+                    outputFormulaSub.textContent = 'BW = 2·fm';
+                    metricLeftLabel.innerHTML = `USB: <span class="font-mono text-slate-300">${(state.analogFc + state.analogFm).toFixed(1)} Hz</span>`;
+                    metricRightLabel.innerHTML = `LSB: <span class="font-mono text-slate-300">${(state.analogFc - state.analogFm).toFixed(1)} Hz</span>`;
+                } else if (state.analogType === 'FM') {
+                    outputEquation.textContent = `s(t) = cos(2π·${state.analogFc}t + ${state.analogIndex.toFixed(1)}·sin(2π·${state.analogFm}t))`;
+                    subtextCard1.textContent = `Carson\'s Rule & Infinite Bessel Sidebands`;
+                    labelCard3.textContent = 'Carson Bandwidth (BW)';
+                    const carsonBW = 2 * (state.analogIndex * state.analogFm + state.analogFm);
+                    outputBeatFreq.textContent = carsonBW.toFixed(2) + ' Hz';
+                    outputFormulaSub.textContent = 'BW ≈ 2(Δf + fm)';
+                    metricLeftLabel.innerHTML = `Δf Peak: <span class="font-mono text-slate-300">${(state.analogIndex * state.analogFm).toFixed(1)} Hz</span>`;
+                    metricRightLabel.innerHTML = `Index β: <span class="font-mono text-slate-300">${state.analogIndex.toFixed(1)}</span>`;
+                } else {
+                    outputEquation.textContent = `s(t) = cos(2π·${state.analogFc}t + ${state.analogIndex.toFixed(1)}·cos(2π·${state.analogFm}t))`;
+                    subtextCard1.textContent = `Phase Angle Proportional to Message`;
+                    labelCard3.textContent = 'Phase Deviation Δθ';
+                    outputBeatFreq.textContent = state.analogIndex.toFixed(2) + ' rad';
+                    outputFormulaSub.textContent = 'Δθ = kp·max|m(t)|';
+                    metricLeftLabel.innerHTML = `fm: <span class="font-mono text-slate-300">${state.analogFm.toFixed(1)} Hz</span>`;
+                    metricRightLabel.innerHTML = `Carson: <span class="font-mono text-slate-300">~${(2 * (state.analogIndex + 1) * state.analogFm).toFixed(1)} Hz</span>`;
+                }
+
+                labelCard2.textContent = 'Instantaneous Modulated s(t)';
+                outputInstantTotal.textContent = (sig.s >= 0 ? '+' : '') + sig.s.toFixed(2);
+                outputInstantTotal.className = `font-mono text-xl font-black ${sig.s >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                outputTVal.textContent = t.toFixed(2) + 's';
+                subComponentsCard2.innerHTML = `<span>Envelope: <span class="text-cyan-400 font-bold">${sig.envelope.toFixed(2)}</span></span><span>Message: <span class="text-amber-400 font-bold">${sig.y1.toFixed(2)}</span></span>`;
+
+                labelCard4.textContent = 'Modulation Phasor State';
+                outputCoM.textContent = `I = ${sig.s.toFixed(2)}`;
+                outputCoMSub.textContent = `fc = ${state.analogFc.toFixed(1)} Hz`;
+
+                phasorHeading.textContent = '2. I/Q Phasor Trajectory';
+                windingModeContainer.classList.add('hidden');
+                windingSubControl.classList.add('hidden');
+
+            } else {
+                // Digital Mode
+                const dState = getDigitalStateAtTime(t);
+                dashboardTitle.textContent = `Digital ${state.digitalType} Modulation Analysis`;
+                labelCard1.textContent = `${state.digitalType} Symbol Output`;
+
+                if (state.digitalType === 'C4FM') {
+                    outputEquation.textContent = `f_dev = [${dState.freqDev >= 0 ? '+' : ''}${dState.freqDev.toFixed(1)} Hz] | Symbol: '${dState.label}'`;
+                    subtextCard1.textContent = `Yaesu Fusion / P25 4-Level FSK Standard`;
+                    labelCard3.textContent = 'Deviation & Spacing';
+                    outputBeatFreq.textContent = `± ${(state.digitalBaud * 1.5).toFixed(1)} Hz`;
+                    outputFormulaSub.textContent = `4-FSK Frequencies`;
+                    metricLeftLabel.innerHTML = `Baud: <span class="font-mono text-slate-300">${state.digitalBaud.toFixed(1)} Bd</span>`;
+                    metricRightLabel.innerHTML = `Bitrate: <span class="font-mono text-slate-300">${(state.digitalBaud * 2).toFixed(1)} bps</span>`;
+                } else if (state.digitalType === '16QAM') {
+                    outputEquation.textContent = `I = ${dState.I.toFixed(2)}, Q = ${dState.Q.toFixed(2)} | Bits: '${dState.label}'`;
+                    subtextCard1.textContent = `16-State Constellation (4 bits/sym)`;
+                    labelCard3.textContent = 'Spectral Efficiency';
+                    outputBeatFreq.textContent = '4.0 b/s/Hz';
+                    outputFormulaSub.textContent = 'η = log₂(16)';
+                    metricLeftLabel.innerHTML = `Baud: <span class="font-mono text-slate-300">${state.digitalBaud.toFixed(1)} Bd</span>`;
+                    metricRightLabel.innerHTML = `Bitrate: <span class="font-mono text-slate-300">${(state.digitalBaud * 4).toFixed(1)} bps</span>`;
+                } else if (state.digitalType === 'QPSK') {
+                    outputEquation.textContent = `Phase = ${(Math.atan2(dState.Q, dState.I) * 180 / Math.PI).toFixed(0)}° | Symbol '${dState.label}'`;
+                    subtextCard1.textContent = `Quadrature Phase Shift Keying`;
+                    labelCard3.textContent = 'QPSK Efficiency';
+                    outputBeatFreq.textContent = '2.0 b/s/Hz';
+                    outputFormulaSub.textContent = 'η = log₂(4)';
+                    metricLeftLabel.innerHTML = `I/Q: <span class="font-mono text-slate-300">${dState.I.toFixed(1)}, ${dState.Q.toFixed(1)}</span>`;
+                    metricRightLabel.innerHTML = `Rate: <span class="font-mono text-slate-300">${(state.digitalBaud * 2).toFixed(1)} bps</span>`;
+                } else {
+                    outputEquation.textContent = `Symbol: '${dState.label}' | State: ${dState.intVal}`;
+                    subtextCard1.textContent = `${state.digitalType} Constant Envelope Transmission`;
+                    labelCard3.textContent = 'Transmission Rate';
+                    outputBeatFreq.textContent = `${state.digitalBaud.toFixed(1)} bps`;
+                    outputFormulaSub.textContent = '1 bit/symbol';
+                    metricLeftLabel.innerHTML = `fc: <span class="font-mono text-slate-300">${state.digitalFc.toFixed(1)} Hz</span>`;
+                    metricRightLabel.innerHTML = `Symbol: <span class="font-mono text-slate-300">#${dState.symIdx + 1}</span>`;
+                }
+
+                labelCard2.textContent = 'Instantaneous Modulated s(t)';
+                outputInstantTotal.textContent = (sig.s >= 0 ? '+' : '') + sig.s.toFixed(2);
+                outputInstantTotal.className = `font-mono text-xl font-black ${sig.s >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+                outputTVal.textContent = t.toFixed(2) + 's';
+                subComponentsCard2.innerHTML = `<span>Sym #: <span class="text-cyan-400 font-bold">${dState.symIdx + 1}</span></span><span>Bits: <span class="text-emerald-400 font-bold">${dState.label}</span></span>`;
+
+                labelCard4.textContent = 'Active Constellation Target';
+                outputCoM.textContent = `Sym '${dState.label}'`;
+                outputCoMSub.textContent = `I:${dState.I.toFixed(2)} Q:${dState.Q.toFixed(2)}`;
+
+                phasorHeading.textContent = '2. I/Q Constellation Diagram';
+                windingModeContainer.classList.add('hidden');
+                windingSubControl.classList.add('hidden');
+            }
+
+            // Sync Web Audio if playing
+            updateAudioSynthesizer();
+        }
+
+        // Web Audio synthesizer implementation
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                gainNode = audioCtx.createGain();
+                gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gainNode.connect(audioCtx.destination);
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function startAudio() {
+            initAudio();
+            if (isAudioPlaying) return;
+
+            osc1 = audioCtx.createOscillator();
+            osc2 = audioCtx.createOscillator();
+            osc1.type = 'sine';
+            osc2.type = 'sine';
+
+            osc1.connect(gainNode);
+            osc2.connect(gainNode);
+
+            osc1.start();
+            osc2.start();
+            isAudioPlaying = true;
+
+            btnAudioOutput.classList.replace('bg-slate-800', 'bg-cyan-600');
+            btnAudioOutput.classList.replace('hover:bg-slate-700', 'hover:bg-cyan-500');
+            audioText.textContent = 'Mute Audio Output';
+        }
+
+        function stopAudio() {
+            if (!isAudioPlaying) return;
+            try {
+                osc1.stop();
+                osc2.stop();
+                osc1.disconnect();
+                osc2.disconnect();
+            } catch (err) {}
+            isAudioPlaying = false;
+            btnAudioOutput.classList.replace('bg-cyan-600', 'bg-slate-800');
+            btnAudioOutput.classList.replace('hover:bg-cyan-500', 'hover:bg-slate-700');
+            audioText.textContent = 'Play Audio Output';
+        }
+
+        function updateAudioSynthesizer() {
+            if (!isAudioPlaying || !audioCtx) return;
+            const clampAudio = (f) => Math.min(Math.max(60, f), 6000);
+
+            if (state.activeMode === 'superposition') {
+                osc1.frequency.setTargetAtTime(clampAudio(state.f1), audioCtx.currentTime, 0.03);
+                osc2.frequency.setTargetAtTime(clampAudio(state.f2), audioCtx.currentTime, 0.03);
+            } else if (state.activeMode === 'analog') {
+                // Audible pitch scaled for demonstration (carrier audio representation)
+                const basePitch = 440;
+                if (state.analogType === 'FM') {
+                    const instPitch = basePitch + state.analogIndex * 45 * Math.sin(2 * Math.PI * state.analogFm * state.time);
+                    osc1.frequency.setTargetAtTime(clampAudio(instPitch), audioCtx.currentTime, 0.02);
+                    osc2.frequency.setTargetAtTime(clampAudio(instPitch), audioCtx.currentTime, 0.02);
+                } else if (state.analogType === 'AM') {
+                    const amGain = Math.max(0.01, 0.12 * (1.0 + 0.7 * Math.cos(2 * Math.PI * state.analogFm * state.time)));
+                    gainNode.gain.setTargetAtTime(amGain, audioCtx.currentTime, 0.02);
+                    osc1.frequency.setTargetAtTime(basePitch, audioCtx.currentTime, 0.03);
+                    osc2.frequency.setTargetAtTime(basePitch, audioCtx.currentTime, 0.03);
+                } else {
+                    osc1.frequency.setTargetAtTime(basePitch, audioCtx.currentTime, 0.03);
+                    osc2.frequency.setTargetAtTime(basePitch * 1.5, audioCtx.currentTime, 0.03);
+                }
+            } else {
+                // Digital modulation warble / chirping tone
+                const dState = getDigitalStateAtTime(state.time);
+                let digitalPitch = 600;
+                if (state.digitalType === 'C4FM') {
+                    digitalPitch = 600 + dState.freqDev * 120; // 4 distinct audio chattering frequencies
+                } else if (state.digitalType === '2FSK') {
+                    digitalPitch = dState.intVal === 1 ? 850 : 450;
+                } else {
+                    digitalPitch = 500 + dState.intVal * 80;
+                }
+                osc1.frequency.setTargetAtTime(clampAudio(digitalPitch), audioCtx.currentTime, 0.01);
+                osc2.frequency.setTargetAtTime(clampAudio(digitalPitch), audioCtx.currentTime, 0.01);
+            }
+        }
+
+        // Setup DPI responsive sizing for crisp canvas rendering
+        function setupCanvas(canvas) {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            return { ctx, width: rect.width, height: rect.height };
+        }
+
+        // 1. Draw Time Domain
+        function drawTimeDomain() {
+            const { ctx, width, height } = setupCanvas(timeCanvas);
+            const padding = { top: 30, right: 30, bottom: 35, left: 45 };
+            const plotW = width - padding.left - padding.right;
+            const plotH = height - padding.top - padding.bottom;
+
+            ctx.fillStyle = '#040711';
+            ctx.fillRect(0, 0, width, height);
+
+            const tMin = 0;
+            const tMax = state.maxTime;
+            let yMin = -2.2;
+            let yMax = 2.2;
+
+            if (state.activeMode === 'superposition') {
+                yMin = -0.5;
+                yMax = 2.5;
+            }
+
+            const mapX = t => padding.left + ((t - tMin) / (tMax - tMin)) * plotW;
+            const mapY = v => padding.top + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+
+            // Subtle grid
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#111827';
+            ctx.beginPath();
+            for (let v = Math.floor(yMin); v <= yMax; v += (yMax - yMin > 3 ? 1 : 0.5)) {
+                const y = mapY(v);
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(padding.left + plotW, y);
+            }
+            ctx.stroke();
+
+            // Vertical dashed lines
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = '#1e293b';
+            for (let t = 0; t <= tMax; t += 0.5) {
+                const x = mapX(t);
+                ctx.beginPath();
+                ctx.moveTo(x, padding.top);
+                ctx.lineTo(x, padding.top + plotH);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // Axes
+            const zeroY = mapY(0);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(padding.left, zeroY);
+            ctx.lineTo(padding.left + plotW, zeroY);
+            ctx.moveTo(padding.left, padding.top);
+            ctx.lineTo(padding.left, padding.top + plotH);
+            ctx.stroke();
+
+            // X-Ticks
+            ctx.fillStyle = '#64748b';
+            ctx.font = '11px monospace';
+            ctx.textAlign = 'center';
+            for (let t = 0; t <= tMax; t += 1) {
+                const x = mapX(t);
+                ctx.beginPath();
+                ctx.moveTo(x, zeroY);
+                ctx.lineTo(x, zeroY + 5);
+                ctx.stroke();
+                ctx.fillText(t + 's', x, zeroY + 18);
+            }
+            ctx.fillText('Time', padding.left + plotW - 10, zeroY + 18);
+
+            // Digital Symbol Boundaries & Bit Badges
+            if (state.activeMode === 'digital') {
+                const symDuration = 1 / state.digitalBaud;
+                const totalSymbols = Math.floor(state.maxTime / symDuration);
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'center';
+
+                for (let i = 0; i <= totalSymbols; i++) {
+                    const symT = i * symDuration;
+                    const x = mapX(symT);
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([2, 2]);
+                    ctx.beginPath();
+                    ctx.moveTo(x, padding.top);
+                    ctx.lineTo(x, padding.top + plotH);
+                    ctx.stroke();
+
+                    // Symbol label
+                    if (i < totalSymbols) {
+                        const midX = mapX(symT + symDuration * 0.5);
+                        const dState = getDigitalStateAtTime(symT + 0.001);
+                        ctx.fillStyle = '#38bdf8';
+                        ctx.fillText(`'${dState.label}'`, midX, padding.top + 12);
+                    }
+                }
+                ctx.setLineDash([]);
+            }
+
+            // Draw AM Envelope if active
+            if (state.activeMode === 'analog' && state.analogType === 'AM') {
+                ctx.strokeStyle = 'rgba(251, 191, 36, 0.7)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([3, 3]);
+
+                // Upper envelope
+                ctx.beginPath();
+                const envSamples = 300;
+                for (let i = 0; i <= envSamples; i++) {
+                    const t = (i / envSamples) * tMax;
+                    const env = 1.0 + (state.analogIndex / 3.0) * Math.cos(2 * Math.PI * state.analogFm * t);
+                    const x = mapX(t);
+                    const y = mapY(env);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+
+                // Lower envelope
+                ctx.beginPath();
+                for (let i = 0; i <= envSamples; i++) {
+                    const t = (i / envSamples) * tMax;
+                    const env = -(1.0 + (state.analogIndex / 3.0) * Math.cos(2 * Math.PI * state.analogFm * t));
+                    const x = mapX(t);
+                    const y = mapY(env);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Draw Signal Waveform
+            ctx.beginPath();
+            ctx.strokeStyle = '#4ade80';
+            ctx.lineWidth = 2.2;
+            ctx.shadowColor = 'rgba(74, 222, 128, 0.4)';
+            ctx.shadowBlur = 6;
+
+            const samples = Math.max(800, plotW * 2);
+            for (let i = 0; i <= samples; i++) {
+                const t = (i / samples) * tMax;
+                const sig = evalSignalAtTime(t);
+                const x = mapX(t);
+                const y = mapY(sig.s);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Draw Current Time Marker
+            const currentT = state.time;
+            const curSig = evalSignalAtTime(currentT);
+            const curX = mapX(currentT);
+            const curY = mapY(curSig.s);
+
+            // Vertical marker
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(curX, padding.top);
+            ctx.lineTo(curX, zeroY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Pointer arrow
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(curX, zeroY);
+            ctx.lineTo(curX, curY + (curSig.s >= 0 ? 6 : -6));
+            ctx.stroke();
+
+            // Arrow head
+            ctx.beginPath();
+            ctx.moveTo(curX, curY);
+            const dir = curSig.s >= 0 ? 1 : -1;
+            ctx.lineTo(curX - 4, curY + 8 * dir);
+            ctx.lineTo(curX + 4, curY + 8 * dir);
+            ctx.closePath();
+            ctx.fill();
+
+            // Dot
+            ctx.beginPath();
+            ctx.arc(curX, curY, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#38bdf8';
+            ctx.shadowColor = '#38bdf8';
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // 2. Draw Phasor / Winding / Constellation Canvas
+        function drawPhasorAndWinding() {
+            const { ctx, width, height } = setupCanvas(phasorCanvas);
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = Math.min(width, height) * 0.42;
+
+            ctx.fillStyle = '#040711';
+            ctx.fillRect(0, 0, width, height);
+
+            // Circular polar rings
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#111b2b';
+            for (let r = 0.25; r <= 1.0; r += 0.25) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius * r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Crosshairs (I and Q axes)
+            ctx.strokeStyle = '#1e293b';
+            ctx.beginPath();
+            ctx.moveTo(centerX - radius * 1.05, centerY);
+            ctx.lineTo(centerX + radius * 1.05, centerY);
+            ctx.moveTo(centerX, centerY - radius * 1.05);
+            ctx.lineTo(centerX, centerY + radius * 1.05);
+            ctx.stroke();
+
+            // Axis labels: I (In-Phase) and Q (Quadrature)
+            ctx.fillStyle = '#64748b';
+            ctx.font = '10px monospace';
+            ctx.fillText('+I', centerX + radius * 1.02, centerY - 4);
+            ctx.fillText('+Q', centerX + 4, centerY - radius * 1.02);
+
+            let tipX = centerX;
+            let tipY = centerY;
+
+            if (state.activeMode === 'superposition') {
+                // 3B1B Polar Winding or Lissajous
+                const visualF1 = state.f1 > 50 ? (2 + Math.log10(state.f1) * 3) : state.f1;
+                const visualF2 = state.f2 > 50 ? (3 + Math.log10(state.f2) * 3.5) : state.f2;
+                const windFreq = state.windingFreq;
+
+                let sumX = 0, sumY = 0;
+                const N = 500;
+                const scale = radius / 2.2;
+
+                ctx.beginPath();
+                ctx.strokeStyle = '#4ade80';
+                ctx.lineWidth = 2.0;
+
+                for (let i = 0; i <= N; i++) {
+                    const t = (i / N) * state.maxTime;
+                    const g = 1.0 + 0.5 * Math.cos(2 * Math.PI * visualF1 * t) + 0.5 * Math.cos(2 * Math.PI * visualF2 * t);
+                    const angle = 2 * Math.PI * windFreq * t;
+                    const wx = g * Math.cos(angle);
+                    const wy = -g * Math.sin(angle);
+
+                    sumX += wx;
+                    sumY += wy;
+                    const px = centerX + wx * scale;
+                    const py = centerY + wy * scale;
+
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+
+                    if (Math.abs(t - state.time) < (state.maxTime / N)) {
+                        tipX = px;
+                        tipY = py;
+                    }
+                }
+                ctx.stroke();
+
+                const comX = sumX / (N + 1);
+                const comY = sumY / (N + 1);
+                const comCanvasX = centerX + comX * scale;
+                const comCanvasY = centerY + comY * scale;
+
+                // Center of Mass Red Dot
+                ctx.beginPath();
+                ctx.arc(comCanvasX, comCanvasY, 6.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#f43f5e';
+                ctx.shadowColor = '#f43f5e';
+                ctx.shadowBlur = 12;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                phasorCoMText.innerHTML = `x̄: ${comX >= 0 ? '+' : ''}${comX.toFixed(2)}`;
+                outputCoM.textContent = `x̄ = ${comX >= 0 ? '+' : ''}${comX.toFixed(2)}`;
+
+            } else if (state.activeMode === 'analog') {
+                // Analog Modulations I/Q Phasor
+                const t = state.time;
+                const scale = radius * 0.85;
+
+                // Draw trajectory over one modulation cycle
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(74, 222, 128, 0.4)';
+                ctx.lineWidth = 1.5;
+                const steps = 300;
+                for (let i = 0; i <= steps; i++) {
+                    const simT = (i / steps) * (1 / state.analogFm);
+                    let simI = 0, simQ = 0;
+                    if (state.analogType === 'AM') {
+                        const env = 1.0 + (state.analogIndex / 3.0) * Math.cos(2 * Math.PI * state.analogFm * simT);
+                        simI = env / 2.0;
+                        simQ = 0;
+                    } else if (state.analogType === 'FM') {
+                        const phi = state.analogIndex * Math.sin(2 * Math.PI * state.analogFm * simT);
+                        simI = Math.cos(phi);
+                        simQ = Math.sin(phi);
+                    } else {
+                        const phi = state.analogIndex * Math.cos(2 * Math.PI * state.analogFm * simT);
+                        simI = Math.cos(phi);
+                        simQ = Math.sin(phi);
+                    }
+                    const px = centerX + simI * scale;
+                    const py = centerY - simQ * scale;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+
+                // Current Phasor Point
+                let curI = 0, curQ = 0;
+                if (state.analogType === 'AM') {
+                    const env = 1.0 + (state.analogIndex / 3.0) * Math.cos(2 * Math.PI * state.analogFm * t);
+                    curI = env / 2.0;
+                    curQ = 0;
+                } else if (state.analogType === 'FM') {
+                    const phi = state.analogIndex * Math.sin(2 * Math.PI * state.analogFm * t);
+                    curI = Math.cos(phi);
+                    curQ = Math.sin(phi);
+                } else {
+                    const phi = state.analogIndex * Math.cos(2 * Math.PI * state.analogFm * t);
+                    curI = Math.cos(phi);
+                    curQ = Math.sin(phi);
+                }
+                tipX = centerX + curI * scale;
+                tipY = centerY - curQ * scale;
+
+                // Center dot
+                ctx.beginPath();
+                ctx.arc(tipX, tipY, 6, 0, Math.PI * 2);
+                ctx.fillStyle = '#38bdf8';
+                ctx.shadowColor = '#38bdf8';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                phasorCoMText.innerHTML = `I: ${curI.toFixed(2)}, Q: ${curQ.toFixed(2)}`;
+
+            } else {
+                // Digital Constellation Diagram (C4FM, BPSK, QPSK, 16-QAM, 2-FSK)
+                const scale = radius * 0.85;
+
+                // Draw Constellation Targets
+                const drawConstellationTarget = (iVal, qVal, lbl, isActive) => {
+                    const cx = centerX + iVal * scale;
+                    const cy = centerY - qVal * scale;
+
+                    // Target ring
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, isActive ? 9 : 6, 0, Math.PI * 2);
+                    ctx.strokeStyle = isActive ? '#fde047' : '#475569';
+                    ctx.lineWidth = isActive ? 2.5 : 1.5;
+                    ctx.stroke();
+
+                    if (isActive) {
+                        ctx.fillStyle = '#fde047';
+                        ctx.shadowColor = '#fde047';
+                        ctx.shadowBlur = 15;
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    }
+
+                    // Label
+                    ctx.fillStyle = isActive ? '#fde047' : '#94a3b8';
+                    ctx.font = '10px monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(lbl, cx, cy - 11);
+                };
+
+                const curDState = getDigitalStateAtTime(state.time);
+
+                if (state.digitalType === 'BPSK') {
+                    drawConstellationTarget(-1, 0, '0', curDState.intVal === 0);
+                    drawConstellationTarget(1, 0, '1', curDState.intVal === 1);
+                    tipX = centerX + curDState.I * scale;
+                    tipY = centerY;
+                } else if (state.digitalType === 'QPSK') {
+                    const qPoints = [
+                        { i: -0.707, q: -0.707, l: '00', v: 0 },
+                        { i: -0.707, q: 0.707, l: '01', v: 1 },
+                        { i: 0.707, q: -0.707, l: '10', v: 2 },
+                        { i: 0.707, q: 0.707, l: '11', v: 3 }
+                    ];
+                    qPoints.forEach(p => drawConstellationTarget(p.i, p.q, p.l, curDState.intVal === p.v));
+                    tipX = centerX + curDState.I * scale;
+                    tipY = centerY - curDState.Q * scale;
+                } else if (state.digitalType === '16QAM') {
+                    const levels = [-3, -1, 1, 3];
+                    for (let bi = 0; bi < 4; bi++) {
+                        for (let bq = 0; bq < 4; bq++) {
+                            const val = (bi << 2) | bq;
+                            const iC = levels[bi] / 3.16;
+                            const qC = levels[bq] / 3.16;
+                            const lbl = bi.toString(2).padStart(2, '0') + bq.toString(2).padStart(2, '0');
+                            drawConstellationTarget(iC, qC, lbl, curDState.intVal === val);
+                        }
+                    }
+                    tipX = centerX + curDState.I * scale;
+                    tipY = centerY - curDState.Q * scale;
+                } else if (state.digitalType === 'C4FM') {
+                    // C4FM 4 Deviation Levels on Frequency/Phase Circle
+                    const c4Labels = ['01 (-3kHz)', '00 (-1kHz)', '10 (+1kHz)', '11 (+3kHz)'];
+                    const devs = [-0.85, -0.3, 0.3, 0.85];
+                    devs.forEach((dev, idx) => {
+                        const angle = dev * Math.PI * 0.8;
+                        const px = Math.cos(angle);
+                        const py = Math.sin(angle);
+                        drawConstellationTarget(px * 0.85, py * 0.85, c4Labels[idx], curDState.intVal === idx);
+                    });
+                    const actAngle = (curDState.freqDev / 3.0) * Math.PI * 0.8;
+                    tipX = centerX + Math.cos(actAngle) * scale * 0.85;
+                    tipY = centerY - Math.sin(actAngle) * scale * 0.85;
+                } else {
+                    // 2-FSK
+                    drawConstellationTarget(0.85, 0.4, '1 (+Δf)', curDState.intVal === 1);
+                    drawConstellationTarget(0.85, -0.4, '0 (-Δf)', curDState.intVal === 0);
+                    const actA = curDState.intVal === 1 ? 0.4 : -0.4;
+                    tipX = centerX + 0.85 * scale;
+                    tipY = centerY - actA * scale;
+                }
+
+                phasorCoMText.innerHTML = `Sym: '${curDState.label}'`;
+            }
+
+            // Draw Phasor Vector from origin to current point
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(tipX, tipY);
+            ctx.stroke();
+
+            // Arrowhead
+            const tipAngle = Math.atan2(tipY - centerY, tipX - centerX);
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(tipX, tipY);
+            ctx.lineTo(tipX - 8 * Math.cos(tipAngle - Math.PI / 6), tipY - 8 * Math.sin(tipAngle - Math.PI / 6));
+            ctx.lineTo(tipX - 8 * Math.cos(tipAngle + Math.PI / 6), tipY - 8 * Math.sin(tipAngle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+
+            // Origin dot
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#94a3b8';
+            ctx.fill();
+
+            // Bottom Canvas Title
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            if (state.activeMode === 'superposition') {
+                ctx.fillText(`${state.windingFreq.toFixed(2)} cycles/second winding`, centerX, height - 12);
+            } else if (state.activeMode === 'analog') {
+                ctx.fillText(`${state.analogType} Modulation Vector (fc = ${state.analogFc} Hz)`, centerX, height - 12);
+            } else {
+                ctx.fillText(`${state.digitalType} Constellation Space`, centerX, height - 12);
+            }
+        }
+
+        // 3. Draw Frequency Domain Canvas
+        function drawFrequencyDomain() {
+            const { ctx, width, height } = setupCanvas(fdrCanvas);
+            const padding = { top: 32, right: 35, bottom: 35, left: 45 };
+            const plotW = width - padding.left - padding.right;
+            const plotH = height - padding.top - padding.bottom;
+
+            ctx.fillStyle = '#040711';
+            ctx.fillRect(0, 0, width, height);
+
+            let maxF = 25.0;
+            if (state.activeMode === 'superposition') {
+                const highF = Math.max(state.f1, state.f2);
+                maxF = highF > 4.5 ? highF * 1.25 : 5.0;
+            } else if (state.activeMode === 'analog') {
+                maxF = Math.max(30.0, state.analogFc * 1.5);
+            } else {
+                maxF = Math.max(25.0, state.digitalFc * 1.6);
+            }
+
+            const fMin = 0;
+            const fMax = maxF;
+            const ampMin = -0.3;
+            const ampMax = 1.1;
+
+            const mapX = f => padding.left + ((f - fMin) / (fMax - fMin)) * plotW;
+            const mapY = a => padding.top + plotH - ((a - ampMin) / (ampMax - ampMin)) * plotH;
+
+            // Grid lines
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = '#111827';
+            ctx.beginPath();
+            for (let a = 0.0; a <= 1.0; a += 0.25) {
+                const y = mapY(a);
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(padding.left + plotW, y);
+            }
+            ctx.stroke();
+
+            // Zero line
+            const zeroY = mapY(0);
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(padding.left, zeroY);
+            ctx.lineTo(padding.left + plotW, zeroY);
+            ctx.stroke();
+
+            // Axes
+            ctx.strokeStyle = '#334155';
+            ctx.beginPath();
+            ctx.moveTo(padding.left, padding.top);
+            ctx.lineTo(padding.left, padding.top + plotH);
+            ctx.stroke();
+
+            // Y-axis labels
+            ctx.fillStyle = '#64748b';
+            ctx.font = '11px monospace';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            [0.0, 0.5, 1.0].forEach(val => {
+                const y = mapY(val);
+                ctx.fillText(val.toFixed(1), padding.left - 8, y);
+            });
+
+            // X-axis ticks
+            ctx.textAlign = 'center';
+            let tickStep;
+            if (fMax >= 1e9) {
+                tickStep = Math.max(1e9, Math.ceil(fMax / 6 / 1e9) * 1e9);
+            } else if (fMax >= 1e6) {
+                tickStep = Math.max(1e6, Math.ceil(fMax / 6 / 1e6) * 1e6);
+            } else if (fMax > 10) {
+                tickStep = Math.ceil(fMax / 8);
+            } else {
+                tickStep = 1;
+            }
+
+            for (let f = 0; f <= fMax; f += tickStep) {
+                const x = mapX(f);
+                ctx.beginPath();
+                ctx.moveTo(x, zeroY);
+                ctx.lineTo(x, zeroY + 4);
+                ctx.stroke();
+                ctx.fillText(formatHz(f), x, zeroY + 18);
+            }
+            ctx.fillText('Frequency', padding.left + plotW - 15, zeroY + 18);
+
+            // Title
+            ctx.font = '13px Inter, sans-serif';
+            ctx.fillStyle = '#f87171';
+            ctx.textAlign = 'center';
+            ctx.fillText(
+                state.activeMode === 'superposition' ? 'Center-of-Mass Spectrum Re{ĝ(f)}' :
+                state.activeMode === 'analog' ? `Bessel & Carson Spectrum |S(f)| (${state.analogType})` :
+                `Digital Spectral Power Density (${state.digitalType})`,
+                padding.left + plotW * 0.5,
+                padding.top - 12
+            );
+
+            // Calculate Spectrum Curve
+            ctx.beginPath();
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 2.2;
+            ctx.shadowColor = 'rgba(244, 63, 94, 0.4)';
+            ctx.shadowBlur = 6;
+
+            const spectrumSamples = 600;
+
+            if (state.activeMode === 'superposition') {
+                const bw = Math.max(0.08, fMax / 120);
+                for (let i = 0; i <= spectrumSamples; i++) {
+                    const f = (i / spectrumSamples) * fMax;
+                    const df0 = Math.abs(f);
+                    const df1 = Math.abs(f - state.f1);
+                    const df2 = Math.abs(f - state.f2);
+
+                    let amp = 0.02;
+                    amp += 0.85 / (1 + Math.pow(df0 / (bw * 0.5), 2));
+                    amp += 0.55 / (1 + Math.pow(df1 / bw, 2));
+                    amp += 0.55 / (1 + Math.pow(df2 / bw, 2));
+
+                    const x = mapX(f);
+                    const y = mapY(Math.min(1.0, amp));
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+            } else if (state.activeMode === 'analog') {
+                const fc = state.analogFc;
+                const fm = state.analogFm;
+                const idx = state.analogIndex;
+
+                for (let i = 0; i <= spectrumSamples; i++) {
+                    const f = (i / spectrumSamples) * fMax;
+                    let amp = 0.02;
+
+                    if (state.analogType === 'AM') {
+                        // Carrier + 2 sidebands
+                        const dC = Math.abs(f - fc);
+                        const dUSB = Math.abs(f - (fc + fm));
+                        const dLSB = Math.abs(f - (fc - fm));
+                        amp += 0.85 / (1 + 25 * dC * dC);
+                        const mAmp = (idx / 3.0) * 0.42;
+                        amp += mAmp / (1 + 25 * dUSB * dUSB);
+                        amp += mAmp / (1 + 25 * dLSB * dLSB);
+                    } else {
+                        // FM / PM: Bessel sidebands approximation
+                        for (let n = -4; n <= 4; n++) {
+                            const fn = fc + n * fm;
+                            const df = Math.abs(f - fn);
+                            // Bessel weight simulation
+                            const bWeight = Math.exp(-Math.pow(Math.abs(n) - idx * 0.8, 2) / (1.5 * idx + 1));
+                            amp += (bWeight * 0.75) / (1 + 30 * df * df);
+                        }
+                    }
+
+                    const x = mapX(f);
+                    const y = mapY(amp);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+            } else {
+                // Digital Spectrum: Sinc-squared envelope or 4-peak C4FM
+                const fc = state.digitalFc;
+                const baud = state.digitalBaud;
+
+                for (let i = 0; i <= spectrumSamples; i++) {
+                    const f = (i / spectrumSamples) * fMax;
+                    let amp = 0.02;
+
+                    if (state.digitalType === 'C4FM') {
+                        // 4 distinct frequency peaks with Nyquist pulse shaping
+                        const devs = [-2.4, -0.8, 0.8, 2.4];
+                        devs.forEach(d => {
+                            const fTone = fc + d;
+                            const df = Math.abs(f - fTone);
+                            amp += 0.65 / (1 + 35 * df * df);
+                        });
+                    } else if (state.digitalType === '2FSK') {
+                        const df1 = Math.abs(f - (fc - 1.5));
+                        const df2 = Math.abs(f - (fc + 1.5));
+                        amp += 0.75 / (1 + 30 * df1 * df1);
+                        amp += 0.75 / (1 + 30 * df2 * df2);
+                    } else {
+                        // PSK / QAM: Main Sinc² lobe centered at fc
+                        const df = (f - fc) / baud;
+                        const sincVal = df === 0 ? 1.0 : Math.sin(Math.PI * df) / (Math.PI * df);
+                        amp += Math.pow(sincVal, 2) * 0.85;
+                    }
+
+                    const x = mapX(f);
+                    const y = mapY(amp);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // Glow Highlights for Key Spectral Components
+            const drawPeakLabel = (freq, label, color = '#fde047') => {
+                const px = mapX(freq);
+                if (px >= padding.left && px <= padding.left + plotW) {
+                    ctx.beginPath();
+                    ctx.arc(px, mapY(0.85), 6, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 12;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+
+                    ctx.fillStyle = color;
+                    ctx.font = 'bold 10px Inter, sans-serif';
+                    ctx.fillText(label, px, mapY(0.85) - 10);
+                }
+            };
+
+            if (state.activeMode === 'superposition') {
+                drawPeakLabel(state.f1, `${formatHz(state.f1)} Peak`);
+                drawPeakLabel(state.f2, `${formatHz(state.f2)} Peak`);
+            } else if (state.activeMode === 'analog') {
+                drawPeakLabel(state.analogFc, `fc (${state.analogFc}Hz)`, '#38bdf8');
+                if (state.analogType === 'AM') {
+                    drawPeakLabel(state.analogFc - state.analogFm, 'LSB', '#fbbf24');
+                    drawPeakLabel(state.analogFc + state.analogFm, 'USB', '#fbbf24');
+                }
+            } else {
+                drawPeakLabel(state.digitalFc, `fc (${state.digitalFc}Hz)`, '#38bdf8');
+            }
+        }
+
+        function render() {
+            drawTimeDomain();
+            drawPhasorAndWinding();
+            drawFrequencyDomain();
+            updateOutputDashboard();
+        }
+
+        function animationLoop(timestamp) {
+            const dt = (timestamp - state.lastFrameTime) / 1000;
+            state.lastFrameTime = timestamp;
+
+            if (state.isPlaying) {
+                state.time += dt * state.speed;
+                if (state.time > state.maxTime) {
+                    state.time = 0;
+                }
+                timeSlider.value = state.time;
+                currentTimeDisplay.textContent = state.time.toFixed(2) + ' s';
+            }
+
+            if (state.isSweeping && state.activeMode === 'superposition') {
+                const maxSweep = parseFloat(windingFreqSlider.max) || 5.0;
+                state.windingFreq += state.sweepDirection * state.sweepSpeed * dt * 2.0;
+                if (state.windingFreq >= maxSweep) {
+                    state.windingFreq = maxSweep;
+                    state.sweepDirection = -1;
+                } else if (state.windingFreq <= 0.1) {
+                    state.windingFreq = 0.1;
+                    state.sweepDirection = 1;
+                }
+                windingFreqSlider.value = state.windingFreq;
+                windingFreqDisplay.textContent = state.windingFreq.toFixed(2) + ' cycles/s';
+            }
+
+            render();
+            requestAnimationFrame(animationLoop);
+        }
+
+        // Mode Switching Logic
+        function switchMode(newMode) {
+            state.activeMode = newMode;
+            [modeSuperpositionBtn, modeAnalogBtn, modeDigitalBtn].forEach(btn => {
+                btn.className = 'mode-tab px-3 py-1 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition';
+            });
+
+            if (newMode === 'superposition') {
+                modeSuperpositionBtn.className = 'mode-tab px-3 py-1 text-xs font-semibold rounded-lg bg-cyan-600 text-white transition';
+                superpositionControls.classList.remove('hidden');
+                analogControls.classList.add('hidden');
+                digitalControls.classList.add('hidden');
+                timeWaveTitle.textContent = `${state.f1} Hz`;
+                timeWaveTitle2.textContent = `${state.f2} Hz`;
+                timeLegendText.textContent = 'Combined Wave s(t)';
+                timeDescriptionText.textContent = 'Superposition of two waves over time.';
+            } else if (newMode === 'analog') {
+                modeAnalogBtn.className = 'mode-tab px-3 py-1 text-xs font-semibold rounded-lg bg-cyan-600 text-white transition';
+                superpositionControls.classList.add('hidden');
+                analogControls.classList.remove('hidden');
+                digitalControls.classList.add('hidden');
+                timeWaveTitle.textContent = `${state.analogType} Carrier: ${state.analogFc} Hz`;
+                timeWaveTitle2.textContent = `Message: ${state.analogFm} Hz`;
+                timeLegendText.textContent = `${state.analogType} Modulated Signal s(t)`;
+                timeDescriptionText.textContent = `Time domain view of analog ${state.analogType} transmission showing dynamic modulation.`;
+            } else {
+                modeDigitalBtn.className = 'mode-tab px-3 py-1 text-xs font-semibold rounded-lg bg-cyan-600 text-white transition';
+                superpositionControls.classList.add('hidden');
+                analogControls.classList.add('hidden');
+                digitalControls.classList.remove('hidden');
+                timeWaveTitle.textContent = `${state.digitalType} Digital Carrier`;
+                timeWaveTitle2.textContent = `${state.digitalBaud} Baud`;
+                timeLegendText.textContent = `${state.digitalType} RF Signal`;
+                timeDescriptionText.textContent = `Digital modulated symbols over time with discrete state boundaries.`;
+                updateDigitalBitStreamDisplay();
+            }
+            render();
+        }
+
+        modeSuperpositionBtn.addEventListener('click', () => switchMode('superposition'));
+        modeAnalogBtn.addEventListener('click', () => switchMode('analog'));
+        modeDigitalBtn.addEventListener('click', () => switchMode('digital'));
+
+        // Analog Control Listeners
+        analogTypeSelect.addEventListener('change', (e) => {
+            state.analogType = e.target.value;
+            if (state.analogType === 'AM') {
+                analogModDesc.textContent = 'Carrier amplitude shaped by message envelope';
+                analogIndexLabel.textContent = 'Mod Depth (μ):';
+            } else if (state.analogType === 'FM') {
+                analogModDesc.textContent = 'Carrier frequency deviated proportional to message';
+                analogIndexLabel.textContent = 'Mod Index (β):';
+            } else {
+                analogModDesc.textContent = 'Carrier phase angle shifted proportional to message';
+                analogIndexLabel.textContent = 'Phase Dev (kp):';
+            }
+            switchMode('analog');
+        });
+
+        analogFcSlider.addEventListener('input', (e) => {
+            state.analogFc = parseFloat(e.target.value);
+            analogFcDisplay.textContent = state.analogFc.toFixed(2) + ' Hz';
+            timeWaveTitle.textContent = `${state.analogType} Carrier: ${state.analogFc} Hz`;
+            render();
+        });
+
+        analogFmSlider.addEventListener('input', (e) => {
+            state.analogFm = parseFloat(e.target.value);
+            analogFmDisplay.textContent = state.analogFm.toFixed(2) + ' Hz';
+            timeWaveTitle2.textContent = `Message: ${state.analogFm} Hz`;
+            render();
+        });
+
+        analogIndexSlider.addEventListener('input', (e) => {
+            state.analogIndex = parseFloat(e.target.value);
+            analogIndexDisplay.textContent = state.analogIndex.toFixed(2);
+            render();
+        });
+
+        // Digital Control Listeners
+        digitalTypeSelect.addEventListener('change', (e) => {
+            state.digitalType = e.target.value;
+            if (state.digitalType === 'C4FM') {
+                digitalModDesc.textContent = '4-frequency continuous FSK with Nyquist filtering';
+            } else if (state.digitalType === '2FSK') {
+                digitalModDesc.textContent = 'Binary Frequency Shift Keying (Mark / Space)';
+            } else if (state.digitalType === 'BPSK') {
+                digitalModDesc.textContent = 'Binary Phase Shift Keying (180° phase inversion)';
+            } else if (state.digitalType === 'QPSK') {
+                digitalModDesc.textContent = 'Quadrature Phase Shift Keying (4 orthogonal phases)';
+            } else {
+                digitalModDesc.textContent = '16-QAM (16 constellation points, 4 bits/symbol)';
+            }
+            switchMode('digital');
+        });
+
+        digitalFcSlider.addEventListener('input', (e) => {
+            state.digitalFc = parseFloat(e.target.value);
+            digitalFcDisplay.textContent = state.digitalFc.toFixed(2) + ' Hz';
+            render();
+        });
+
+        digitalBaudSlider.addEventListener('input', (e) => {
+            state.digitalBaud = parseFloat(e.target.value);
+            digitalBaudDisplay.textContent = state.digitalBaud.toFixed(1) + ' Baud';
+            updateDigitalBitStreamDisplay();
+            render();
+        });
+
+        btnRandomBits.addEventListener('click', () => {
+            generateRandomBits();
+        });
+
+        // Time slider
+        timeSlider.addEventListener('input', (e) => {
+            state.time = parseFloat(e.target.value);
+            currentTimeDisplay.textContent = state.time.toFixed(2) + ' s';
+            render();
+        });
+
+        // Speed selector
+        speedSelect.addEventListener('change', (e) => {
+            state.speed = parseFloat(e.target.value);
+        });
+
+        // Play / Pause toggle
+        btnPlayPause.addEventListener('click', () => {
+            state.isPlaying = !state.isPlaying;
+            if (state.isPlaying) {
+                playText.textContent = 'Pause';
+                playIcon.innerHTML = '<rect x="4" y="3" width="4" height="14"/><rect x="12" y="3" width="4" height="14"/>';
+                btnPlayPause.classList.replace('bg-cyan-600', 'bg-amber-600');
+                btnPlayPause.classList.replace('hover:bg-cyan-500', 'hover:bg-amber-500');
+            } else {
+                playText.textContent = 'Play';
+                playIcon.innerHTML = '<polygon points="5 3 19 10 5 17"/>';
+                btnPlayPause.classList.replace('bg-amber-600', 'bg-cyan-600');
+                btnPlayPause.classList.replace('hover:bg-amber-500', 'hover:bg-cyan-500');
+            }
+        });
+
+        // Reset
+        btnReset.addEventListener('click', () => {
+            state.time = 0;
+            timeSlider.value = 0;
+            currentTimeDisplay.textContent = '0.00 s';
+            render();
+        });
+
+        // Superposition Frequency 1 (1 Hz to 200 Hz) and Frequency 2 (1 Hz to 12,000,000,000 Hz / 12 GHz) handlers
+        function setF1(hz) {
+            const clamped = Math.max(1, Math.min(200, hz));
+            state.f1 = clamped;
+            f1Slider.value = clamped;
+            f1Display.textContent = formatHz(clamped);
+            if (state.activeMode === 'superposition') timeWaveTitle.textContent = formatHz(clamped);
+            f1Input.value = parseFloat(clamped.toFixed(2));
+            render();
+        }
+
+        function setF2(hz) {
+            const clamped = Math.max(1, Math.min(12000000000, hz));
+            state.f2 = clamped;
+            f2Slider.value = freqToLogVal(clamped);
+            f2Display.textContent = formatHz(clamped);
+            if (state.activeMode === 'superposition') timeWaveTitle2.textContent = formatHz(clamped);
+
+            // Synchronize unit dropdown and numeric input if not currently focused
+            if (document.activeElement !== f2Input) {
+                if (clamped >= 1e9) {
+                    f2Unit.value = '1000000000';
+                    f2Input.value = parseFloat((clamped / 1e9).toFixed(4));
+                } else if (clamped >= 1e6) {
+                    f2Unit.value = '1000000';
+                    f2Input.value = parseFloat((clamped / 1e6).toFixed(4));
+                } else if (clamped >= 1e3) {
+                    f2Unit.value = '1000';
+                    f2Input.value = parseFloat((clamped / 1e3).toFixed(4));
+                } else {
+                    f2Unit.value = '1';
+                    f2Input.value = parseFloat(clamped.toFixed(2));
+                }
+            }
+            render();
+        }
+
+        f1Slider.addEventListener('input', (e) => setF1(parseFloat(e.target.value)));
+        f1Input.addEventListener('input', () => setF1(parseFloat(f1Input.value) || 1));
+
+        f2Slider.addEventListener('input', (e) => setF2(logValToFreq(e.target.value)));
+        f2Input.addEventListener('input', () => {
+            const unitMult = parseFloat(f2Unit?.value) || 1;
+            setF2((parseFloat(f2Input.value) || 1) * unitMult);
+        });
+        if (f2Unit) {
+            f2Unit.addEventListener('change', () => {
+                const unitMult = parseFloat(f2Unit?.value) || 1;
+                setF2((parseFloat(f2Input.value) || 1) * unitMult);
+            });
+        }
+
+        // Audio Toggle
+        btnAudioOutput.addEventListener('click', () => {
+            if (isAudioPlaying) {
+                stopAudio();
+            } else {
+                startAudio();
+            }
+        });
+
+        // Copy Equation
+        btnCopyEquation.addEventListener('click', () => {
+            const textToCopy = outputEquation.textContent;
+            const tempInput = document.createElement('input');
+            tempInput.value = textToCopy;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            const origText = btnCopyEquation.textContent;
+            btnCopyEquation.textContent = 'Copied!';
+            btnCopyEquation.classList.add('text-cyan-400');
+            setTimeout(() => {
+                btnCopyEquation.textContent = origText;
+                btnCopyEquation.classList.remove('text-cyan-400');
+            }, 1500);
+        });
+
+        // Winding controls
+        windingFreqSlider.addEventListener('input', (e) => {
+            state.windingFreq = parseFloat(e.target.value);
+            windingFreqDisplay.textContent = state.windingFreq.toFixed(2) + ' cycles/s';
+            render();
+        });
+
+        btnAutoSweep.addEventListener('click', () => {
+            state.isSweeping = !state.isSweeping;
+            if (state.isSweeping) {
+                btnAutoSweep.classList.add('bg-cyan-600', 'text-white');
+                btnAutoSweep.classList.remove('bg-slate-800', 'text-slate-300');
+            } else {
+                btnAutoSweep.classList.remove('bg-cyan-600', 'text-white');
+                btnAutoSweep.classList.add('bg-slate-800', 'text-slate-300');
+            }
+        });
+
+        windingModeSelect.addEventListener('change', (e) => {
+            state.windingMode = e.target.value;
+            render();
+        });
+
+        // Presets
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                switchMode('superposition');
+                const f1 = parseFloat(btn.dataset.f1);
+                const f2 = parseFloat(btn.dataset.f2);
+                setF1(f1);
+                setF2(f2);
+                state.windingFreq = Math.min(f1, 5.0);
+                windingFreqSlider.value = state.windingFreq;
+                windingFreqDisplay.textContent = state.windingFreq.toFixed(2) + ' cycles/s';
+                render();
+            });
+        });
+
+        window.addEventListener('resize', () => render());
+
+        window.onload = function() {
+            setF1(state.f1);
+            setF2(state.f2);
+            updateDigitalBitStreamDisplay();
+            render();
+            requestAnimationFrame(animationLoop);
+        };
+    </script>
+</body>
+</html>
